@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<title>Control Remoto</title>
+<style>
+:root{--bg:#0f1115;--panel:#181b22;--line:#272b35;--btn:#232731;--txt:#e8e9ec;--mut:#7d8494;--acc:#4c7cf5;--ok:#35c27a;--bad:#e0574f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overscroll-behavior:none}
+body{display:flex;flex-direction:column;gap:10px;padding:max(12px,env(safe-area-inset-top)) 12px max(12px,env(safe-area-inset-bottom));height:100dvh}
+header{display:flex;align-items:center;gap:10px;font-size:14px}
+#dot{width:10px;height:10px;border-radius:50%;background:var(--bad);flex:none;transition:background .2s}
+#dot.on{background:var(--ok)}
+#st{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#c9ccd3}
+.icon{flex:none;width:40px;height:40px;padding:0;border-radius:12px;font-size:20px;line-height:40px}
+#pad{flex:1;min-height:160px;border-radius:18px;background:var(--panel);border:1px solid var(--line);touch-action:none;
+ display:flex;align-items:center;justify-content:center;text-align:center;color:#4d5362;font-size:13px;line-height:1.8;padding:20px;position:relative}
+#pad.touch{border-color:#36405a}
+.row{display:flex;gap:8px}
+button{flex:1;min-width:0;padding:15px 6px;border:0;border-radius:12px;background:var(--btn);color:var(--txt);font:inherit;font-size:15px;touch-action:manipulation;transition:background .08s}
+button:active,button.active{background:var(--acc)}
+.tabs{display:flex;background:var(--panel);border-radius:12px;padding:4px;gap:4px}
+.tabs button{padding:9px 4px;font-size:13px;background:transparent;color:var(--mut)}
+.tabs button.sel{background:var(--btn);color:var(--txt)}
+.panel{display:none;flex-direction:column;gap:8px}
+.panel.sel{display:flex}
+input{font:inherit}
+.field{flex:1;min-width:0;padding:13px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--txt);font-size:16px;-webkit-user-select:text;user-select:text;outline:none}
+.field:focus{border-color:var(--acc)}
+.narrow{flex:0 0 auto;padding:13px 18px}
+/* Ajustes */
+#cfg{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;gap:14px;padding:max(18px,env(safe-area-inset-top)) 18px 18px;overflow:auto;z-index:5}
+#cfg.open{display:flex}
+#cfg h2{margin:0 0 4px;font-size:20px}
+#cfg label{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--mut)}
+#cfg p{margin:0;font-size:13px;color:var(--mut);line-height:1.5}
+#cfg .help{background:var(--panel);border-radius:12px;padding:12px 14px}
+#save{background:var(--acc);flex:2}
+input[type=range]{width:100%;accent-color:var(--acc)}
+</style>
+</head>
+<body>
+<header>
+  <span id="dot"></span><span id="st">Sin configurar</span>
+  <button class="icon" id="gear" aria-label="Ajustes">⚙</button>
+</header>
+
+<div id="pad">1 dedo: mover · toque: clic<br>2 dedos: desplazar · toque con 2 dedos: clic derecho</div>
+
+<div class="row">
+  <button id="bl">Clic izq.</button><button id="drag">Arrastrar</button><button id="br">Clic der.</button>
+</div>
+
+<div class="tabs">
+  <button data-tab="kb" class="sel">Teclado</button>
+  <button data-tab="media">Multimedia</button>
+  <button data-tab="pres">Presentación</button>
+</div>
+
+<div class="panel sel" id="kb">
+  <div class="row">
+    <input id="txt" class="field" placeholder="Escribir en la PC…" autocomplete="off" autocapitalize="off" autocorrect="off" enterkeyhint="send">
+    <button id="send" class="narrow">Enviar</button>
+  </div>
+  <div class="row">
+    <button data-key="backspace">⌫</button><button data-key="enter">Enter</button>
+    <button data-key="tab">Tab</button><button data-key="esc">Esc</button>
+  </div>
+</div>
+
+<div class="panel" id="media">
+  <div class="row"><button data-key="voldown">Vol −</button><button data-key="mute">Silencio</button><button data-key="volup">Vol +</button></div>
+  <div class="row"><button data-key="prev">⏮</button><button data-key="playpause">⏯</button><button data-key="next">⏭</button></div>
+</div>
+
+<div class="panel" id="pres">
+  <div class="row"><button data-key="pgup">◀ Anterior</button><button data-key="pgdn">Siguiente ▶</button></div>
+  <div class="row"><button data-key="f5">Iniciar (F5)</button><button data-key="esc">Salir (Esc)</button></div>
+</div>
+
+<div id="cfg">
+  <h2>Conexión con la PC</h2>
+  <p>Copiá los datos que muestra el programa en la ventana de la PC.</p>
+  <label>IP Wi-Fi (en casa)<input id="cWifi" class="field" inputmode="decimal" placeholder="Ej: 192.168.0.15"></label>
+  <label>IP Tailscale (por internet)<input id="cTs" class="field" inputmode="decimal" placeholder="Ej: 100.101.102.103 (opcional)"></label>
+  <label>Código de vinculación<input id="cCode" class="field" inputmode="numeric" maxlength="6" placeholder="6 números"></label>
+  <label>Puerto<input id="cPort" class="field" inputmode="numeric" placeholder="8765"></label>
+  <label><span>Velocidad del puntero: <span id="sensV"></span></span><input id="cSens" type="range" min="0.5" max="4" step="0.1"></label>
+  <div class="help"><p>La app prueba primero la IP Wi-Fi y, si no responde, la de Tailscale. Para usarla fuera de casa, Tailscale tiene que estar abierto en la PC y en el celular.</p></div>
+  <div class="row"><button id="cancel">Cancelar</button><button id="save">Guardar y conectar</button></div>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const vib = () => { try { navigator.vibrate && navigator.vibrate(8); } catch(e){} };
+
+// ---------- Guardado de ajustes (en la app de Android o en el navegador)
+const store = {
+  get(){ try { return JSON.parse((window.Android ? Android.load() : localStorage.getItem('cfg')) || '{}'); } catch(e){ return {}; } },
+  set(o){ const s = JSON.stringify(o); try { window.Android ? Android.save(s) : localStorage.setItem('cfg', s); } catch(e){} }
+};
+let cfg = Object.assign({wifi:'', ts:'', code:'', port:8765, sens:1.6}, store.get());
+
+// Abierto desde el navegador, servido por la PC: completar solo
+if (!window.Android && location.protocol.startsWith('http') && location.hostname) {
+  const c = new URLSearchParams(location.search).get('c');
+  if (!cfg.wifi) cfg.wifi = location.hostname;
+  if (c) cfg.code = c;
+  if (location.port) cfg.port = +location.port;
+}
+
+// ---------- Conexión
+let ws = null, gen = 0, tryIdx = 0, fails = 0, retry = null;
+const setStatus = (text, on) => { $('st').textContent = text; $('dot').classList.toggle('on', !!on); };
+function targets(){
+  const t = [];
+  if (cfg.wifi) t.push({h:cfg.wifi.trim(), name:'Wi-Fi'});
+  if (cfg.ts) t.push({h:cfg.ts.trim(), name:'Tailscale'});
+  return t;
+}
+function connect(){
+  clearTimeout(retry);
+  const list = targets();
+  if (!list.length || !cfg.code) { setStatus('Tocá ⚙ para configurar', false); return; }
+  const my = ++gen, tgt = list[tryIdx % list.length];
+  setStatus('Conectando por ' + tgt.name + '…', false);
+  let sock, opened = false;
+  try { sock = new WebSocket(`ws://${tgt.h}:${cfg.port}/ws?t=${encodeURIComponent(cfg.code)}`); }
+  catch(e){ tryIdx++; retry = setTimeout(connect, 1000); return; }
+  const timer = setTimeout(() => { if (!opened) sock.close(); }, 2500);
+  sock.onopen = () => { if (my !== gen) return sock.close(); opened = true; fails = 0; clearTimeout(timer); ws = sock; setStatus('Conectado por ' + tgt.name, true); };
+  sock.onclose = () => {
+    clearTimeout(timer);
+    if (ws === sock) ws = null;
+    if (my !== gen) return;
+    if (!opened) { tryIdx++; fails++; }
+    if (fails >= list.length * 2) setStatus('Sin conexión: revisá que el programa esté abierto, la IP y el código', false);
+    else setStatus(opened ? 'Reconectando…' : 'Probando de nuevo…', false);
+    retry = setTimeout(connect, opened ? 300 : 1000);
+  };
+}
+const send = o => { if (ws && ws.readyState === 1) ws.send(JSON.stringify(o)); };
+setInterval(() => send({t:'ping'}), 15000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !ws) { fails = 0; connect(); } });
+
+// ---------- Movimiento: se acumula y se envía una vez por cuadro
+const pend = {x:0, y:0, s:0};
+(function flush(){
+  const rx = Math.round(pend.x), ry = Math.round(pend.y);
+  if (rx || ry) { send({t:'m', x:rx, y:ry}); pend.x -= rx; pend.y -= ry; }
+  const rs = Math.trunc(pend.s);
+  if (rs) { send({t:'s', y:rs}); pend.s -= rs; }
+  requestAnimationFrame(flush);
+})();
+
+// ---------- Gestos del touchpad
+const pad = $('pad');
+let last = null, startT = 0, moved = 0, maxF = 0;
+const avg = ts => { let x = 0, y = 0; for (const t of ts) { x += t.clientX; y += t.clientY; } return {x:x/ts.length, y:y/ts.length}; };
+pad.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === e.changedTouches.length) { startT = performance.now(); moved = 0; maxF = 0; }
+  maxF = Math.max(maxF, e.touches.length);
+  last = avg(e.touches);
+  pad.classList.add('touch');
+}, {passive:false});
+pad.addEventListener('touchmove', e => {
+  e.preventDefault();
+  const p = avg(e.touches), dx = p.x - last.x, dy = p.y - last.y;
+  last = p; moved += Math.abs(dx) + Math.abs(dy);
+  if (e.touches.length === 1) {
+    const f = cfg.sens * (1 + Math.min(Math.hypot(dx, dy), 40) / 12);  // aceleración
+    pend.x += dx * f; pend.y += dy * f;
+  } else {
+    pend.s += dy * 3;   // desplazamiento natural, como en el celular
+  }
+}, {passive:false});
+const endTouch = e => {
+  e.preventDefault();
+  if (e.touches.length === 0) {
+    pad.classList.remove('touch');
+    if (performance.now() - startT < 250 && moved < 12) { send({t:'c', b: maxF >= 2 ? 'r' : 'l'}); vib(); }
+  } else last = avg(e.touches);
+};
+pad.addEventListener('touchend', endTouch, {passive:false});
+pad.addEventListener('touchcancel', endTouch, {passive:false});
+
+// ---------- Botones
+$('bl').onclick = () => { send({t:'c', b:'l'}); vib(); };
+$('br').onclick = () => { send({t:'c', b:'r'}); vib(); };
+let dragging = false;
+$('drag').onclick = () => {
+  dragging = !dragging;
+  send({t: dragging ? 'd' : 'u', b:'l'}); vib();
+  $('drag').classList.toggle('active', dragging);
+  $('drag').textContent = dragging ? 'Soltar' : 'Arrastrar';
+};
+const sendText = () => { const s = $('txt').value; if (s) { send({t:'k', s}); $('txt').value = ''; vib(); } };
+$('send').onclick = sendText;
+$('txt').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendText(); } });
+document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => { send({t:'key', k:b.dataset.key}); vib(); });
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.classList.toggle('sel', x === b));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('sel', p.id === b.dataset.tab));
+});
+
+// ---------- Ajustes
+const cfgEl = $('cfg');
+function openCfg(){
+  $('cWifi').value = cfg.wifi; $('cTs').value = cfg.ts; $('cCode').value = cfg.code;
+  $('cPort').value = cfg.port; $('cSens').value = cfg.sens; $('sensV').textContent = cfg.sens;
+  cfgEl.classList.add('open');
+}
+const closeCfg = () => { cfgEl.classList.remove('open'); document.activeElement && document.activeElement.blur(); };
+$('cSens').oninput = () => { $('sensV').textContent = $('cSens').value; };
+$('gear').onclick = openCfg;
+$('cancel').onclick = closeCfg;
+$('save').onclick = () => {
+  cfg = {
+    wifi: $('cWifi').value.trim(), ts: $('cTs').value.trim(),
+    code: $('cCode').value.replace(/\D/g, ''), port: parseInt($('cPort').value, 10) || 8765,
+    sens: parseFloat($('cSens').value) || 1.6
+  };
+  store.set(cfg); closeCfg();
+  if (ws) { const old = ws; ws = null; gen++; old.close(); }
+  tryIdx = 0; fails = 0; connect();
+};
+// Botón "atrás" de Android: cierra ajustes antes de salir
+window.onBack = () => { if (cfgEl.classList.contains('open')) { closeCfg(); return true; } return false; };
+
+if (!targets().length || !cfg.code) openCfg(); else connect();
+})();
+</script>
+</body>
+</html>
